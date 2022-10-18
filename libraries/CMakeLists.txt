@@ -32,14 +32,14 @@ target_link_libraries(FREERTOS_FILES PRIVATE
 add_library(CMSIS_FREERTOS_FILES STATIC)
 
 target_sources(CMSIS_FREERTOS_FILES PUBLIC
-        ${CMSIS_FREERTOS_DIR}/source/ARM/clib_arm.c        
-        ${CMSIS_FREERTOS_DIR}/source/cmsis_os2.c        
-        ${CMSIS_FREERTOS_DIR}/source/freertos_evr.c
-        ${CMSIS_FREERTOS_DIR}/source/os_systick.c
+        ${CMSIS_FREERTOS_DIR}/Source/ARM/clib_arm.c        
+        ${CMSIS_FREERTOS_DIR}/Source/cmsis_os2.c        
+        ${CMSIS_FREERTOS_DIR}/Source/freertos_evr.c
+        ${CMSIS_FREERTOS_DIR}/Source/os_systick.c
 )
 
 target_include_directories(CMSIS_FREERTOS_FILES PUBLIC
-        ${CMSIS_FREERTOS_DIR}/include
+        ${CMSIS_FREERTOS_DIR}/Include
         ${CMSIS_5_DIR}/CMSIS/RTOS2/Include
         ${CMSIS_5_DIR}/CMSIS/Core/Include
         ${PICO_SDK_PATH}/src/rp2_common/cmsis/stub/CMSIS/Device/RaspberryPi/RP2040/Include
