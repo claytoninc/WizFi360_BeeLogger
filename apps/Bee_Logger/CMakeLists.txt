@@ -1,20 +1,26 @@
-set(TARGET_NAME tcp_client_demo)
+set(TARGET_NAME Bee_Logger)
 
 add_executable(${TARGET_NAME}
-        ${TARGET_NAME}.c
+        bee_logger.c
         app_main.c
         socket_startup.c
         iot_demo.c
+        one_wire.cpp
+        temperature_sensors.cpp
+        weight_sensor.c
+        mqtt_client.c
         )
 
 target_include_directories(${TARGET_NAME} PUBLIC
         ${PORT_DIR}
+        ../../libraries/CMSIS-Driver/Config
         )
 
 target_link_libraries(${TARGET_NAME} PRIVATE
         pico_stdlib
         cmsis_core
         CMSIS_FREERTOS_FILES
+        hardware_i2c
         hardware_spi
         hardware_dma
         FREERTOS_FILES

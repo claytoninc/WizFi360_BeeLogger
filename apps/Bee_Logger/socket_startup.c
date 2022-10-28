@@ -28,7 +28,8 @@
 
 extern ARM_DRIVER_WIFI Driver_WiFi1;
 
-int32_t socket_startup (void) {
+int32_t socket_startup (void) 
+{
   ARM_WIFI_CONFIG_t config;
   int32_t ret;
   uint8_t net_info[4];

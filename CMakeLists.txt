@@ -1,3 +1,4 @@
+
 # CMake minimum required version
 cmake_minimum_required(VERSION 3.12)
 
@@ -75,6 +76,7 @@ add_definitions(-DDRIVER_WIFI_NUM=1)
 
 # Hardware-specific examples in subdirectories:
 add_subdirectory(examples)
+add_subdirectory(apps)
 
 # Add libraries in subdirectories
 add_subdirectory(${CMAKE_SOURCE_DIR}/libraries)

@@ -1,3 +1,1 @@
-add_subdirectory(SSL_Client_Demo)
-add_subdirectory(TCP_Client_Demo)
-add_subdirectory(TCP_Server_Demo)
+add_subdirectory(Bee_Logger)

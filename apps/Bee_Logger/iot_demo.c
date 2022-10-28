@@ -9,24 +9,26 @@
  * Includes
  * ----------------------------------------------------------------------------------------------------
  */
-#include <stdio.h>
-#include <string.h>
 
+#include <stdio.h>
+
+#include "cmsis_os2.h"
 #include "port_common.h"
 #include "timer.h"
-#include "iot_socket.h"
+#include "mqtt_client.h"
+#include "temperature_sensors.h"
+#include "weight_sensor.h"
 
 /**
  * ----------------------------------------------------------------------------------------------------
  * Macros
  * ----------------------------------------------------------------------------------------------------
  */
-/* Buffer */
-#define ETHERNET_BUF_MAX_SIZE (1024 * 2)
 
-/* TCP */
-#define TARGET_PORT 6000
-#define RECV_TIMEOUT (10 * 1000)
+// Access Details
+#define ACCESS_ID       "client"
+#define ACCESS_USER     "username"
+#define ACCESS_TOKEN    "PaGTfP0IHpv6FuvWewXP"
 
 /**
  * ----------------------------------------------------------------------------------------------------
@@ -34,14 +36,6 @@
  * ----------------------------------------------------------------------------------------------------
  */
 
-/* TCP */
-static uint8_t g_tcp_send_buf[ETHERNET_BUF_MAX_SIZE] = {
-    0,
-};
-static uint8_t g_tcp_recv_buf[ETHERNET_BUF_MAX_SIZE] = {
-    0,
-};
-static uint8_t g_tcp_target_ip[4] = {192, 168, 2, 101};
 
 /* Timer  */
 static volatile uint32_t g_msec_cnt = 0;
@@ -52,12 +46,11 @@ static volatile uint32_t g_msec_cnt = 0;
  * ----------------------------------------------------------------------------------------------------
  */
 
-/* TCP */
-int recv_timeout(void *ctx, unsigned char *buf, size_t len, uint32_t timeout);
 
 /* Timer  */
 static void repeating_timer_callback(void);
 static time_t millis(void);
+
 
 /**
  * ----------------------------------------------------------------------------------------------------
@@ -66,42 +59,81 @@ static time_t millis(void);
  */
 int demo( void )
 {
-    int retval = 0;
-    int32_t af;
-    uint32_t ip_len = 4;
-    uint8_t sock;
-    uint32_t send_cnt = 0;
+    double      temperature;
+    double      weight;
+    bool        temperature_valid;
+    bool        weight_valid;
+    bool        retb;
+    int         cycle_count;
+
+    printf( "Temperature Sensor - Initialise\n" );
+    TempSensor_init();
+    printf( "Weight Sensor - Initialise\n" );
+    WeightSensor_init();
+
+    printf( "Start ...\n" );
 
     wizchip_1ms_timer_initialize(repeating_timer_callback);
 
-    af = IOT_SOCKET_AF_INET;
-
-    sock = iotSocketCreate (af, IOT_SOCKET_SOCK_STREAM, IOT_SOCKET_IPPROTO_TCP);
-    if (sock < 0){
-        printf("iotSocketCreate failed %d\r\n", sock);
-        return sock;
-    }
-
-    retval = iotSocketConnect (sock, g_tcp_target_ip, 4, TARGET_PORT);
-    if (retval < 0){
-        iotSocketClose (sock);
-        printf("iotSocketConnect failed %d\r\n", retval);
-        return retval;
-    }
-
-    while(1)
-    {   
-        sprintf(g_tcp_send_buf, "Hello WizFi360-EVB-Pico-C TCP_Client_Demo send_cnt = %d\r\n", send_cnt++);
-        retval = iotSocketSend(sock, g_tcp_send_buf, strlen(g_tcp_send_buf));
-        printf("iotSocketSend retval = %d\r\n", retval);
-
-        retval = recv_timeout(sock, g_tcp_recv_buf, ETHERNET_BUF_MAX_SIZE, RECV_TIMEOUT);
-        if(retval > 0){
-            printf("recv_timeout retval = %d\r\n", retval);
-            printf("%.*s\r\n", retval, g_tcp_recv_buf);
+    cycle_count = 0;
+    osDelay( 2000 );
+    while ( 1 )
+    {
+        if ( cycle_count!=0 )
+        {   // pause between recordings
+            printf( "Pause ...\n" );
+            osDelay( 10000 );
         }
+
+        cycle_count++;
+        printf( "\n" );
+        printf( "***********************\n" );
+        printf( "Starting Cycle %d ...\n", cycle_count );
+
+        printf( "Read Temperature ...\n" );
+        temperature_valid = TempSensor_read( 4, &temperature );
+        if ( !temperature_valid )
+        {
+            printf( "ERROR - Temperature Read Failed\n" );
+        }
+
+        printf( "Read Weight ...\n" );
+        weight_valid = WeightSensor_read( 4, &weight );
+        if ( !weight_valid )
+        {
+            printf( "ERROR - Weight Read Failed\n" );
+        }
+
+        if ( !temperature_valid && !weight_valid )
+        {   // no valid data - try again
+            continue;
+        }
+
+        while ( 1 )
+        {
+            retb = mqtt_connect( ACCESS_ID, ACCESS_USER ) ;
+            if ( !retb )
+                break;
+            if ( temperature_valid )
+            {
+                retb = mqtt_send_float( "Temperature", temperature ) ;
+                if ( !retb )
+                    break;
+            }
+            if ( weight_valid )
+            {
+                retb = mqtt_send_float( "Weight", weight ) ;
+                if ( !retb )
+                    break;
+            }
+            break;
+        }
+        mqtt_disconnect();
     }
 }
+
+
+
 
 /* Timer */
 static void repeating_timer_callback(void)
@@ -114,19 +146,3 @@ static time_t millis(void)
     return g_msec_cnt;
 }
 
-/* TCP */
-int recv_timeout(void *ctx, unsigned char *buf, size_t len, uint32_t timeout)
-{
-    int32_t ret;
-    uint32_t n = timeout;
-
-    ret = iotSocketSetOpt (((uint8_t)ctx), IOT_SOCKET_SO_RCVTIMEO, &n, sizeof(n));
-    if (ret < 0)
-        return (-1);
-
-    ret = iotSocketRecv ((uint8_t)ctx, buf, len);
-    if (ret < 0)
-        return (0);
-
-    return ret;
-}
