@@ -2,13 +2,12 @@ set(TARGET_NAME Bee_Logger)
 
 add_executable(${TARGET_NAME}
         bee_logger.c
-        app_main.c
-        socket_startup.c
-        iot_demo.c
-        one_wire.cpp
-        temperature_sensors.cpp
-        weight_sensor.c
         mqtt_client.c
+        temperature_sensors.cpp
+        humidity_temp_sensors.cpp
+        weight_sensor.c
+        one_wire.cpp
+        HTU21D.cpp
         )
 
 target_include_directories(${TARGET_NAME} PUBLIC

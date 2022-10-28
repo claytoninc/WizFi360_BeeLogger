@@ -19,19 +19,13 @@
 
 #define HX711_GAIN          3           // GAIN: 1=128  2=32  3=64
 
-#define HX711_TIMEOUT_US    200000
+#define HX711_TIMEOUT_US    300000
 
-#define WEIGHT_SCALEFACTOR  (1.0/2000)  // Scale factor to apply to the output reading
-#define WEIGHT_OFFSET       0.0         // Kg offset to subtract (after scaling)
-
-
+#define WEIGHT_RAW_OFFSET   -53288          // raw reading offset to subtract (before scaling)
+#define WEIGHT_SCALEFACTOR  (1.0/10473)     // Scale factor to apply to the output reading
+#define WEIGHT_OFFSET       0.0             // Kg offset to subtract (after scaling)
 
 // Data
-
-
-
-
-
 
 
 // Private Functions
@@ -94,8 +88,8 @@ static bool HX711_waitForReady( int timeoutuSec )
             break;
         }
         // pause
-        sleep_us(25);
-        timecount -= 25;
+        sleep_us(10);
+        timecount -= 10;
     }
 
     if ( timecount<=0 )
@@ -202,7 +196,7 @@ bool WeightSensor_read( int count, double *result )
     }
     // calculations
     raw_reading = raw_reading_total / count;
-    scaled_reading = ( raw_reading * WEIGHT_SCALEFACTOR ) - WEIGHT_OFFSET;
+    scaled_reading = ( (raw_reading-WEIGHT_RAW_OFFSET) * WEIGHT_SCALEFACTOR ) - WEIGHT_OFFSET;
     printf( "Weight total:  %.2f of %d readings\n", raw_reading_total, count );
     printf( "Raw Reading:  %.2f\n", raw_reading );
     printf( "Scaled Reading:  %.3f kg\n", scaled_reading );

@@ -1,4 +1,10 @@
 /*
+  HTU21D Humidity Sensor Library for RPi Pico
+  Ported to pico by clayton@isnotcrazy.com
+
+  Derived from the Arduino SparkFun_HTU21D_Humidity_and_Temperature_Sensor_Breakout library
+
+
   HTU21D Humidity Sensor Library
   By: Nathan Seidle
   SparkFun Electronics
@@ -23,9 +29,35 @@
   HTU21D.read_user_register() returns the user register. Used to set resolution.
 */
 
-#include <Wire.h>
+#include <stdint.h>
+#include <stdio.h>
+#include "hardware/i2c.h"
+#include "hardware/gpio.h"
 
-#include "SparkFunHTU21D.h"
+#include "HTU21D.h"
+
+#define HTU21D_ADDRESS 0x40  //Unshifted 7-bit I2C address for the sensor
+
+#define ERROR_I2C_TIMEOUT 	998
+#define ERROR_BAD_CRC		999
+
+#define TRIGGER_TEMP_MEASURE_HOLD  0xE3
+#define TRIGGER_HUMD_MEASURE_HOLD  0xE5
+#define TRIGGER_TEMP_MEASURE_NOHOLD  0xF3
+#define TRIGGER_HUMD_MEASURE_NOHOLD  0xF5
+#define WRITE_USER_REG  0xE6
+#define READ_USER_REG  0xE7
+#define SOFT_RESET  0xFE
+
+#define USER_REGISTER_RESOLUTION_MASK 0x81
+#define USER_REGISTER_RESOLUTION_RH12_TEMP14 0x00
+#define USER_REGISTER_RESOLUTION_RH8_TEMP12 0x01
+#define USER_REGISTER_RESOLUTION_RH10_TEMP13 0x80
+#define USER_REGISTER_RESOLUTION_RH11_TEMP11 0x81
+
+#define USER_REGISTER_END_OF_BATTERY 0x40
+#define USER_REGISTER_HEATER_ENABLED 0x04
+#define USER_REGISTER_DISABLE_OTP_RELOAD 0x02
 
 HTU21D::HTU21D()
 {
@@ -35,11 +67,22 @@ HTU21D::HTU21D()
 //Begin
 /*******************************************************************************************/
 //Start I2C communication
-void HTU21D::begin(TwoWire &wirePort)
+void HTU21D::begin( int i2cport, int SDA_Pin, int SCL_pin )
 {
-  _i2cPort = &wirePort; //Grab which port the user wants us to use
-  
-  _i2cPort->begin();
+  int  retval;
+
+  // select port
+  if ( i2cport==1 )
+    i2c_port = i2c1;
+  else
+    i2c_port = i2c0;
+  // init port and pins
+  retval = i2c_init( i2c_port, 100 * 1000 );
+  //printf("Init returned %d\n", retval );
+  gpio_set_function( SDA_Pin, GPIO_FUNC_I2C );
+  gpio_pull_up( SDA_Pin );
+  gpio_set_function( SCL_pin, GPIO_FUNC_I2C );
+  gpio_pull_up( SCL_pin );
 }
 
 #define MAX_WAIT 100
@@ -47,73 +90,83 @@ void HTU21D::begin(TwoWire &wirePort)
 #define MAX_COUNTER (MAX_WAIT/DELAY_INTERVAL)
 
 //Given a command, reads a given 2-byte value with CRC from the HTU21D
-uint16_t HTU21D::readValue(byte cmd)
+bool HTU21D::readValue( uint8_t cmd, uint16_t *value )
 {
-  //Request a humidity reading
-  _i2cPort->beginTransmission(HTU21D_ADDRESS);
-  _i2cPort->write(cmd); //Measure value (prefer no hold!)
-  _i2cPort->endTransmission();
-  
-  //Hang out while measurement is taken. datasheet says 50ms, practice may call for more
-  byte toRead;
-  byte counter;
-  for (counter = 0, toRead = 0 ; counter < MAX_COUNTER && toRead != 3 ; counter++)
+  int       retval;
+  uint8_t   read_buf[3] = {0};
+  uint16_t  rawValue;
+  uint32_t  timeout;
+
+  // Request a reading. Read 3 bytes - high-byte low-byte crc
+
+  // issue command
+  retval = i2c_write_timeout_us( i2c_port, HTU21D_ADDRESS, &cmd,1, false, 1000 );
+  if ( retval!=1 )
   {
-    delay(DELAY_INTERVAL);
-
-    //Comes back in three bytes, data(MSB) / data(LSB) / Checksum
-    toRead = _i2cPort->requestFrom(HTU21D_ADDRESS, 3);
+    printf("i2c_write_timeout_us returned %d\n", retval );
+    return false;
   }
-
-  if (counter == MAX_COUNTER) return (ERROR_I2C_TIMEOUT); //Error out
-
-  byte msb, lsb, checksum;
-  msb = _i2cPort->read();
-  lsb = _i2cPort->read();
-  checksum = _i2cPort->read();
-
-  uint16_t rawValue = ((uint16_t) msb << 8) | (uint16_t) lsb;
-
-  if (checkCRC(rawValue, checksum) != 0) return (ERROR_BAD_CRC); //Error out
-
-  return rawValue & 0xFFFC; // Zero out the status bits
+  // wait for valid response when ready
+  timeout = 100000;
+  while ( timeout>0 )
+  {
+    retval = i2c_read_timeout_us( i2c_port, HTU21D_ADDRESS, read_buf,3, false, 1000 );
+    if ( retval>0 )
+      break;
+    sleep_us(50);
+    timeout -= 50;
+  }
+  if ( retval!=3 )
+  {
+    printf("i2c_read_timeout_us returned %d\n", retval );
+    return false;
+  }
+  rawValue = ( ((uint16_t)(read_buf[0])) << 8) | ((uint16_t)(read_buf[1]));
+  //printf("raw value %d\n", rawValue );
+  if ( checkCRC(rawValue, read_buf[2]) != 0 )
+  {
+    printf("checksum failed (%d,%d,%d)\n", read_buf[0],read_buf[1],read_buf[2] );
+    return false;
+  }
+  *value = rawValue & 0xFFFC; // Zero out the status bits
+  return true;
 }
 
 //Read the humidity
-/*******************************************************************************************/
-//Calc humidity and return it to the user
-//Returns 998 if I2C timed out
-//Returns 999 if CRC is wrong
-float HTU21D::readHumidity(void)
+bool HTU21D::readHumidity( double *value )
 {
-  uint16_t rawHumidity = readValue(TRIGGER_HUMD_MEASURE_NOHOLD);
+  bool      retb;
+  uint16_t  rawHumidity;
+  double    tempHumidity;
   
-  if(rawHumidity == ERROR_I2C_TIMEOUT || rawHumidity == ERROR_BAD_CRC) return(rawHumidity);
+  retb = readValue( TRIGGER_HUMD_MEASURE_NOHOLD, &rawHumidity );
+  if ( !retb )
+    return false;
 
   //Given the raw humidity data, calculate the actual relative humidity
-  float tempRH = rawHumidity * (125.0 / 65536.0); //2^16 = 65536
-  float rh = tempRH - 6.0; //From page 14
-
-  return (rh);
+  tempHumidity = rawHumidity * (125.0 / 65536.0);     //2^16 = 65536
+  *value = tempHumidity - 6.0;                        //From page 14
+  return true;
 }
 
 //Read the temperature
-/*******************************************************************************************/
-//Calc temperature and return it to the user
-//Returns 998 if I2C timed out
-//Returns 999 if CRC is wrong
-float HTU21D::readTemperature(void)
+bool HTU21D::readTemperature( double *value )
 {
-  uint16_t rawTemperature = readValue(TRIGGER_TEMP_MEASURE_NOHOLD);
+  bool      retb;
+  uint16_t  rawTemperature;
+  double    tempTemperature;
+  
+  retb = readValue( TRIGGER_TEMP_MEASURE_NOHOLD, &rawTemperature );
+  if ( !retb )
+    return false;
 
-  if(rawTemperature == ERROR_I2C_TIMEOUT || rawTemperature == ERROR_BAD_CRC) return(rawTemperature);
-
-  //Given the raw temperature data, calculate the actual temperature
-  float tempTemperature = rawTemperature * (175.72 / 65536.0); //2^16 = 65536
-  float realTemperature = tempTemperature - 46.85; //From page 14
-
-  return (realTemperature);
+  // Given the raw temperature data, calculate the actual temperature
+  tempTemperature = rawTemperature * (175.72 / 65536.0);  //2^16 = 65536
+  *value = tempTemperature - 46.85;                       //From page 14
+  return true;
 }
+
+#if 0
 
 //Set sensor resolution
 /*******************************************************************************************/
@@ -125,11 +178,11 @@ float HTU21D::readTemperature(void)
 // 1/1 = 11bit RH, 11bit Temp
 //Power on default is 0/0
 
-void HTU21D::setResolution(byte resolution)
+void HTU21D::setResolution(uint8_t resolution)
 {
-  byte userRegister = readUserRegister(); //Go get the current register state
-  userRegister &= B01111110; //Turn off the resolution bits
-  resolution &= B10000001; //Turn off all other bits but resolution bits
+  uint8_t userRegister = readUserRegister(); //Go get the current register state
+  userRegister &= 0x7E;   // B01111110; //Turn off the resolution bits
+  resolution &= 0x81;     // B10000001; //Turn off all other bits but resolution bits
   userRegister |= resolution; //Mask in the requested resolution bits
 
   //Request a write to user register
@@ -137,9 +190,9 @@ void HTU21D::setResolution(byte resolution)
 }
 
 //Read the user register
-byte HTU21D::readUserRegister(void)
+uint8_t HTU21D::readUserRegister(void)
 {
-  byte userRegister;
+  uint8_t userRegister;
 
   //Request the user register
   _i2cPort->beginTransmission(HTU21D_ADDRESS);
@@ -154,13 +207,16 @@ byte HTU21D::readUserRegister(void)
   return (userRegister);
 }
 
-void HTU21D::writeUserRegister(byte val)
+void HTU21D::writeUserRegister(uint8_t val)
 {
   _i2cPort->beginTransmission(HTU21D_ADDRESS);
   _i2cPort->write(WRITE_USER_REG); //Write to the user register
   _i2cPort->write(val); //Write the new resolution bits
   _i2cPort->endTransmission();
 }
+
+#endif
+
 
 //Give this function the 2 byte message (measurement) and the check_value byte from the HTU21D
 //If it returns 0, then the transmission was good
@@ -169,7 +225,7 @@ void HTU21D::writeUserRegister(byte val)
 //POLYNOMIAL = 0x0131 = x^8 + x^5 + x^4 + 1 : http://en.wikipedia.org/wiki/Computation_of_cyclic_redundancy_checks
 #define SHIFTED_DIVISOR 0x988000 //This is the 0x0131 polynomial shifted to farthest left of three bytes
 
-byte HTU21D::checkCRC(uint16_t message_from_sensor, uint8_t check_value_from_sensor)
+uint8_t HTU21D::checkCRC(uint16_t message_from_sensor, uint8_t check_value_from_sensor)
 {
   //Test cases from datasheet:
   //message = 0xDC, checkvalue is 0x79
@@ -195,5 +251,5 @@ byte HTU21D::checkCRC(uint16_t message_from_sensor, uint8_t check_value_from_sen
     divsor >>= 1; //Rotate the divsor max 16 times so that we have 8 bits left of a remainder
   }
 
-  return (byte)remainder;
+  return (uint8_t)remainder;
 }
