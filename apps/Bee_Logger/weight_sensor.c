@@ -21,8 +21,8 @@
 
 #define HX711_TIMEOUT_US    300000
 
-#define WEIGHT_RAW_OFFSET   -53288          // raw reading offset to subtract (before scaling)
-#define WEIGHT_SCALEFACTOR  (1.0/10473)     // Scale factor to apply to the output reading
+#define WEIGHT_RAW_OFFSET   -32300          // raw reading offset to subtract (before scaling)
+#define WEIGHT_SCALEFACTOR  (1.0/10673)     // Scale factor to apply to the output reading
 #define WEIGHT_OFFSET       0.0             // Kg offset to subtract (after scaling)
 
 // Data

@@ -21,6 +21,7 @@
 #include "FreeRTOSConfig.h"
 #include "timer.h"
 #include "Driver_WiFi.h"
+#include "hardware/watchdog.h"
 
 #include "mqtt_client.h"
 #include "temperature_sensors.h"
@@ -35,14 +36,13 @@
 #define PLL_SYS_KHZ (133 * 1000)
 
 //  WiFi Connection Details
-#define SSID            "Free Wifi"
-#define PASSWORD        "thereisnopassword"
+#define SSID            "TheCloud"
+#define PASSWORD        "letITrain"
 #define SECURITY_TYPE   ARM_WIFI_SECURITY_WPA2
 
 // MQTT Access Details
-#define ACCESS_ID       "client"
-#define ACCESS_USER     "username"
-#define ACCESS_TOKEN    "PaGTfP0IHpv6FuvWewXP"
+#define ACCESS_ID       "beehive001"
+#define ACCESS_USER     "beekeeper1"
 
 // ----------------------------------------------------------------------------------------------------
 //  DATA
@@ -95,6 +95,10 @@ int main (void)
     SystemCoreClockUpdate();
     stdio_init_all();
 
+    // set up watchdog
+    watchdog_enable( 8000, true );
+    watchdog_update();
+ 
     // Initialize CMSIS-RTOS
     osKernelInitialize();
     // Create Thread
@@ -128,17 +132,30 @@ static void app_main (void *argument)
     printf("\n\n");
     osDelay(1000);
     printf("\n");
+    watchdog_update();
     osDelay(1000);
     printf("\n");
     osDelay(1000);
     printf("\n");
     osDelay(1000);
+    watchdog_update();
     printf("\n");
-    printf("'app_main' Thread is running\n");
+    printf("=======================================================\n");
+    printf("\n");
+    printf("      Beehive Logging Application                      \n");
+    printf("        Reads weight, temperature and humidity data,   \n");
+    printf("           and records it to an MQTT server            \n");
+    printf("      Hardware:  WizFi360-EVB-Pico                     \n");
+    printf("\n");
+    printf("      clayton@isnotcrazy.com                           \n");
+    printf("\n");
+    printf("=======================================================\n");
+    printf("\n");
     printf("\n");
 
     wizchip_1ms_timer_initialize( repeating_timer_callback );
 
+    watchdog_update();
     application();
 }
 
@@ -150,6 +167,10 @@ void application( void )
 {
     bool        temperature1_valid;
     double      temperature1;
+    bool        temperature2_valid;
+    double      temperature2;
+    bool        temperature3_valid;
+    double      temperature3;
     bool        weight_valid;
     double      weight;
     bool        humidity_valid;
@@ -168,25 +189,50 @@ void application( void )
     printf( "Humidity/Temperature Sensor - Initialise\n" );
     HumidityTempSensor_init();
 
+    watchdog_update();
+
     // setup wifi
+    printf("Connecting to WiFi ...\n");
     wifi_ready = socket_startup();
+    watchdog_update();
 
     // main loop
     printf( "Start ...\n" );
     cycle_count = 0;
     osDelay( 2000 );
+    watchdog_update();
     while ( 1 )
     {
         if ( cycle_count!=0 )
         {   // pause between recordings
             printf( "Pause ...\n" );
-            osDelay( 10000 );
+            watchdog_update();
+            osDelay( 2000 );
+            watchdog_update();
+            osDelay( 2000 );
+            watchdog_update();
+            osDelay( 2000 );
+            watchdog_update();
+            osDelay( 2000 );
+            watchdog_update();
+            osDelay( 2000 );
+            watchdog_update();
+            osDelay( 2000 );
+            watchdog_update();
+            osDelay( 2000 );
+            watchdog_update();
+            osDelay( 2000 );
+            watchdog_update();
+            osDelay( 2000 );
+            watchdog_update();
+            osDelay( 2000 );
         }
 
         cycle_count++;
         printf( "\n" );
         printf( "***********************\n" );
         printf( "Starting Cycle %d ...\n", cycle_count );
+        watchdog_update();
 
         printf( "Check Wifi ...\n" );
         wifi_state = socket_check();
@@ -207,13 +253,29 @@ void application( void )
                 continue;
             }
         }
+        watchdog_update();
 
         printf( "Read Temperature 1 ...\n" );
-        temperature1_valid = TempSensor_read( 4, &temperature1 );
+        temperature1_valid = TempSensor_read( SENSORS_T1, &temperature1 );
         if ( !temperature1_valid )
         {
             printf( "ERROR - Temperature1 Read Failed\n" );
         }
+
+        printf( "Read Temperature 2 ...\n" );
+        temperature2_valid = TempSensor_read( SENSORS_T2, &temperature2 );
+        if ( !temperature2_valid )
+        {
+            printf( "ERROR - Temperature2 Read Failed\n" );
+        }
+
+        printf( "Read Temperature 3 ...\n" );
+        temperature3_valid = TempSensor_read( SENSORS_T3, &temperature3 );
+        if ( !temperature3_valid )
+        {
+            printf( "ERROR - Temperature3 Read Failed\n" );
+        }
+        watchdog_update();
 
         printf( "Read Weight ...\n" );
         weight_valid = WeightSensor_read( 4, &weight );
@@ -221,6 +283,7 @@ void application( void )
         {
             printf( "ERROR - Weight Read Failed\n" );
         }
+        watchdog_update();
 
         printf( "Read Humidity ...\n" );
         humidity_valid = HumidityTempSensor_read( HUMIDITY_SENSOR, &humidity );
@@ -237,9 +300,12 @@ void application( void )
         {
             printf( "ERROR - Ambient Temperature Read Failed\n" );
         }
+        watchdog_update();
 
         // test for data
         if (    !temperature1_valid && 
+                !temperature2_valid && 
+                !temperature3_valid && 
                 !weight_valid && 
                 !humidity_valid && 
                 !ambient_temp_valid )
@@ -251,6 +317,7 @@ void application( void )
         while ( 1 )
         {
             retb = mqtt_connect( ACCESS_ID, ACCESS_USER ) ;
+            watchdog_update();
             if ( !retb )
                 break;
             if ( temperature1_valid )
@@ -259,27 +326,46 @@ void application( void )
                 if ( !retb )
                     break;
             }
+            watchdog_update();
+            if ( temperature2_valid )
+            {
+                retb = mqtt_send_float( "Temperature2", temperature2 ) ;
+                if ( !retb )
+                    break;
+            }
+            watchdog_update();
+            if ( temperature3_valid )
+            {
+                retb = mqtt_send_float( "Temperature3", temperature3 ) ;
+                if ( !retb )
+                    break;
+            }
+            watchdog_update();
             if ( weight_valid )
             {
                 retb = mqtt_send_float( "Weight", weight ) ;
                 if ( !retb )
                     break;
             }
+            watchdog_update();
             if ( humidity_valid )
             {
                 retb = mqtt_send_float( "Humidity", humidity ) ;
                 if ( !retb )
                     break;
             }
+            watchdog_update();
             if ( ambient_temp_valid )
             {
                 retb = mqtt_send_float( "AmbientTemperature", ambient_temp ) ;
                 if ( !retb )
                     break;
             }
+            watchdog_update();
             break;
         }
         mqtt_disconnect();
+        watchdog_update();
     }
 }
 
@@ -293,13 +379,11 @@ bool socket_startup( void )
     uint8_t net_info[4];
     int32_t len;
 
-    printf("Connecting to WiFi ...\r\n");
-
-    ret = Driver_WiFi1.Initialize  (NULL);
-    printf("Driver_WiFix.Initialize  (NULL) = %d\r\n", ret);
+    ret = Driver_WiFi1.Initialize(NULL);
+    printf("Driver_WiFix.Initialize(NULL) = %d\n", ret);
 
     ret = Driver_WiFi1.PowerControl(ARM_POWER_FULL);
-    printf("Driver_WiFix.PowerControl(ARM_POWER_FULL) = %d\r\n", ret);
+    printf("Driver_WiFix.PowerControl(ARM_POWER_FULL) = %d\n", ret);
 
     memset((void *)&config, 0, sizeof(config));
     config.ssid     = SSID;
@@ -308,31 +392,31 @@ bool socket_startup( void )
     config.ch       = 0U;
 
     ret = Driver_WiFi1.Activate(0U, &config);
-    printf("Driver_WiFix.Activate(0U, &config) = %d\r\n", ret);
+    printf("Driver_WiFix.Activate(0U, &config) = %d\n", ret);
 
     ret = Driver_WiFi1.IsConnected();  
-    printf("Driver_WiFix.IsConnected() = %d\r\n", ret);
+    printf("Driver_WiFix.IsConnected() = %d\n", ret);
 
     if ( ret==0U ) 
     {
-        printf("WiFi network connection failed!\r\n");
+        printf("WiFi network connection failed!\n");
         return false;
     }
 
     // Connected
-    printf("WiFi network connection succeeded!\r\n");
+    printf("WiFi network connection succeeded!\n");
 
     len = sizeof(net_info);
     Driver_WiFi1.GetOption(0, ARM_WIFI_IP, net_info, &len );
-    printf("ARM_WIFI_IP = %d.%d.%d.%d\r\n", net_info[0], net_info[1], net_info[2], net_info[3]);
+    printf("ARM_WIFI_IP = %d.%d.%d.%d\n", net_info[0], net_info[1], net_info[2], net_info[3]);
 
     len = sizeof(net_info);
     Driver_WiFi1.GetOption(0, ARM_WIFI_IP_SUBNET_MASK, net_info, &len );
-    printf("ARM_WIFI_IP_SUBNET_MASK = %d.%d.%d.%d\r\n", net_info[0], net_info[1], net_info[2], net_info[3]);
+    printf("ARM_WIFI_IP_SUBNET_MASK = %d.%d.%d.%d\n", net_info[0], net_info[1], net_info[2], net_info[3]);
 
     len = sizeof(net_info);
     Driver_WiFi1.GetOption(0, ARM_WIFI_IP_GATEWAY, net_info, &len );
-    printf("ARM_WIFI_IP_GATEWAY = %d.%d.%d.%d\r\n", net_info[0], net_info[1], net_info[2], net_info[3]);
+    printf("ARM_WIFI_IP_GATEWAY = %d.%d.%d.%d\n", net_info[0], net_info[1], net_info[2], net_info[3]);
 
     return true;
 }
@@ -345,10 +429,10 @@ bool socket_check( void )
     int32_t ret;
 
     ret = Driver_WiFi1.IsConnected();  
-    //printf("Driver_WiFix.IsConnected() = %d\r\n", ret);
+    //printf("Driver_WiFix.IsConnected() = %d\n", ret);
     if ( ret==0U ) 
     {
-        printf("WiFi network connection failed!\r\n");
+        printf("WiFi network connection failed!\n");
         return false;
     }
     return true;

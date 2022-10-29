@@ -345,7 +345,7 @@ bool mqtt_send_float( const char *key, double value )
     header_length = build_header( MQTTPUBLISH, mqtt_tx_buf, length );
     msg_ptr = &(mqtt_tx_buf[MQTT_MAX_HEADER_SIZE-header_length]);
     length += header_length;
-    display_buffer( "MQTT Telementry message", mqtt_tx_buf, length );
+    display_buffer( "MQTT Telementry message", msg_ptr, length );
 
     // send message
     retval = iotSocketSend( sock_id, msg_ptr, length );
