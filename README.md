@@ -15,6 +15,9 @@ The system uses the MQTT protocol sent over Wifi, and logs data to the ‘Things
 
 The live system is available (as of Oct 2022) at https://thingsboard.cloud/dashboard/3d8a3870-5767-11ed-a40f-6527c4d13844?publicId=8cc98b20-5767-11ed-9bfe-295761657fe1
 
+
+!(pictures/cover_picture.PNG)
+
 ## Hardware
 
 The following HW devices were used:
