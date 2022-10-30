@@ -13,6 +13,8 @@ As a hobbyist beekeeper, I thought that a system to monitor a beehive would prov
 
 The system uses the MQTT protocol sent over Wifi, and logs data to the ‘ThingsBoard’ cloud service (https://thingsboard.cloud/). ‘ThingsBoard’ allows the data to be stored, and then used to update widgets on a webpage. My system displays the current readings, as well as a timeseries over a selectable timespan.
 
+The live system is available (as of Oct 2022) at https://thingsboard.cloud/dashboard/3d8a3870-5767-11ed-a40f-6527c4d13844?publicId=8cc98b20-5767-11ed-9bfe-295761657fe1
+
 ## Hardware
 
 The following HW devices were used:
@@ -73,7 +75,7 @@ The 12V battery was connected, and the monitor began logging to the cloud.
 
 The system has only been logging for a day, but already intriguing data is shown. Once the day warms up, the weight of the hive drops as the bees go out to forage. There is even a weigh drop across a period of a few hours – possibly when the bees find a good source of nectar and communicate this to the rest of the hive. As expected, the cluster temperature stays warm, with other parts of the hive cooler.
 
-Over time it is expected that the hive weight will gradually increase as the honey stores increase.
+There is some drift in the accuracy of the scales, but as we are interested in trends rather than specifics, this should not be a problem. Over time it is expected that the hive weight will gradually increase as the honey stores increase.
 
 ## Conclusion
 
