@@ -11,7 +11,7 @@ As a hobbyist beekeeper, I thought that a system to monitor a beehive would prov
 * Ambient Humidity
 * Internal Hive Temperature (in three locations)
 
-The system uses the MQTT protocol, and logs data to the ‘ThingsBoard’ cloud service (https://thingsboard.cloud/). ‘ThingsBoard’ allows the data to be stored, and then used to update widgets on a webpage. My system displays the current readings, as well as a timeseries over a selectable timespan.
+The system uses the MQTT protocol sent over Wifi, and logs data to the ‘ThingsBoard’ cloud service (https://thingsboard.cloud/). ‘ThingsBoard’ allows the data to be stored, and then used to update widgets on a webpage. My system displays the current readings, as well as a timeseries over a selectable timespan.
 
 ## Hardware
 
@@ -25,7 +25,7 @@ The following HW devices were used:
 
 These we connected as shown in the circuit diagram.
 
-After the initial prototype was developed, the device was housed into a length of drain tube to provide a watertight enclosure that we still RF transparent. Waterproof ‘Aviation’ connectors were used for the sensor and power (with a pin removed and block off to ensure the power connector was plugged into the correct location). The Humidity/Temperature sensor was mounted in a hole in the housing to expose the sensor to the outside environment. The Pico device and voltage regulators were mounted on a wooden bracket on the front panel and wired in place. This allowed the whole assembly to be removed in one piece and minimize the holes in the housing. Liberal amounts of hot-melt glue secured the components and wiring.
+After the initial prototype was developed, the device was housed into a length of drain tube to provide a watertight enclosure that we still RF transparent. Waterproof ‘Aviation’ connectors were used for the sensor and power (with a pin removed and block off to ensure the power connector was plugged into the correct location). The Humidity/Temperature sensor was mounted in a hole in the housing to expose the sensor to the outside environment. The Pico device and voltage regulators were mounted on an internal wooden bracket off the front panel and wired in place. This allowed the whole assembly to be removed in one piece and minimize the holes in the housing. Liberal amounts of hot-melt glue secured the components and wiring.
 
 Initially the power supply is a 12V Gel-Cell, but this will be augmented with a solar panel and charge controller.
 
