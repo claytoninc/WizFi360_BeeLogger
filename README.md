@@ -23,7 +23,7 @@ The following HW devices were used:
 * Power supply regulator – switching regulator (for 12V to 7.5V) followed by a 7805 5V regulator
 * Connectors, housing (drain pipe fittings), 12V gel-cell battery, misc components.
 
-These we connected as shown in the circuit diagram.
+These we connected as shown in the circuit diagram (pictures/Beehive_Schematic.png).
 
 After the initial prototype was developed, the device was housed into a length of drain tube to provide a watertight enclosure that we still RF transparent. Waterproof ‘Aviation’ connectors were used for the sensor and power (with a pin removed and block off to ensure the power connector was plugged into the correct location). The Humidity/Temperature sensor was mounted in a hole in the housing to expose the sensor to the outside environment. The Pico device and voltage regulators were mounted on an internal wooden bracket off the front panel and wired in place. This allowed the whole assembly to be removed in one piece and minimize the holes in the housing. Liberal amounts of hot-melt glue secured the components and wiring.
 
@@ -37,12 +37,12 @@ The software is available at Github (https://github.com/claytoninc/WizFi360_BeeL
 
 It is based on the WizNet example TCP-Client code from WizNet (https://github.com/Wiznet/WizFi360-EVB-Pico-C)
 
-Initially there were problems in getting the system to compile, but after a few tweaks of the CMake file to correct the case of directory name, the code compiles in a WSL environment using GCC 9.2.1 arm-none-eadi (following the RPi pico starters guide).
+Initially there were problems in getting the system to compile, but after a few tweaks of the CMake file to correct the case of directory names, the code compiled in a WSL environment using GCC 9.2.1 arm-none-eadi (following the RPi pico starters guide).
 The code was further developed using other libraries, including Arduino libraries. Some were used directly with little change. Some were only used as reference for developing the final code.
 
 The required MQTT implementation only needs to connect and submit data – so only a very limited set of the MQTT features. Simple code was developed to do this feature, based on the ‘ThingsBoard’ sample projects (especially the ‘PubSubClient’ Arduino library))
 
-The one-wire library (for the DS18B20 sensors) using the library from adamboardman (https://github.com/adamboardman/pico-onewire)
+The one-wire library (for the DS18B20 sensors) used the library from adamboardman (https://github.com/adamboardman/pico-onewire)
 
 The HX711 (weight sensor) was written, with reference to a number of HX711 Arduino libraries
 
@@ -53,10 +53,11 @@ The operation of the system is:
 * take a measurement from all sensors
 * connect to the MQTT server
 * transfer all valid sensor data to the server
+* disconnect from the server
 * delay for 20 seconds
 * repeat
 
-A simple software loop performs these operations. A watchdog time ensures that should a problem occur, the system will reset and start again.
+A simple software loop performs these operations. A watchdog timer ensures that should a problem occur, the system will reset and start again.
 
 ## Installation
 
