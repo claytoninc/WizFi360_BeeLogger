@@ -1,20 +1,9 @@
-Please refer to [getting_started.md][link-getting_started] for examples usage.
-
-
-
-<!--
-Link
--->
-
-[link-getting_started]: https://github.com/Wiznet/WizFi360-EVB-Pico-C/blob/main/getting_started.md
-
-
-
-
 ## Beehive Monitoring System
 ## by Clayton Gumbrell (2022)
 
 ## Summary
+
+This project is a submission into the 2022 WIzFi360 Design Context (https://maker.wiznet.io/contest/wizfi360)
 
 As a hobbyist beekeeper, I thought that a system to monitor a beehive would provide a useful tool for a beekeeper. The primary useful data is the weight of a hive, as it allows the current honey load to be determined, and the need to visit the hive to extract the honey. However, some additional sensors would also provide some useful information. The Beehive Monitor System monitors the following data
 * Beehive Weight
@@ -27,10 +16,10 @@ The system uses the MQTT protocol, and logs data to the ‘ThingsBoard’ cloud 
 ## Hardware
 
 The following HW devices were used:
-* [WizFi360-EVB-Pico](https://docs.wiznet.io/Product/Open-Source-Hardware/wizfi360-evb-pico)
-* [HX711 load cell amplifier module and four load cells](https://www.google.com/shopping/product/14447591399390874475?q=HX711&prds=epd:8070744819064228801,eto:8070744819064228801_0,pid:7819152989178781780&sa=X&ved=0ahUKEwiNgZCX1If7AhUr-TgGHRkPDtcQ9pwGCA0 or similar)
-* [HTU21D Humidity and Temperature Sensor Module](https://learn.sparkfun.com/tutorials/htu21d-humidity-sensor-hookup-guide or similar)
-* [DS18B20 1-wire temperature probes (three of)](https://www.auselectronicsdirect.com.au/waterproof-temperature-probe?gclid=Cj0KCQjwwfiaBhC7ARIsAGvcPe59dlib6Ym7jRV8cdfq4YUC_9I9gWqb9n32ViwaJjuLSsjYDgZDz48aAlYjEALw_wcB or similar)
+* WizFi360-EVB-Pico (https://docs.wiznet.io/Product/Open-Source-Hardware/wizfi360-evb-pico)
+* HX711 load cell amplifier module and four load cells (https://www.google.com/shopping/product/14447591399390874475?q=HX711&prds=epd:8070744819064228801,eto:8070744819064228801_0,pid:7819152989178781780&sa=X&ved=0ahUKEwiNgZCX1If7AhUr-TgGHRkPDtcQ9pwGCA0 or similar)
+* HTU21D Humidity and Temperature Sensor Module (https://learn.sparkfun.com/tutorials/htu21d-humidity-sensor-hookup-guide or similar)
+* DS18B20 1-wire temperature probes (three of) (https://www.auselectronicsdirect.com.au/waterproof-temperature-probe?gclid=Cj0KCQjwwfiaBhC7ARIsAGvcPe59dlib6Ym7jRV8cdfq4YUC_9I9gWqb9n32ViwaJjuLSsjYDgZDz48aAlYjEALw_wcB or similar)
 * Power supply regulator – switching regulator (for 12V to 7.5V) followed by a 7805 5V regulator
 * Connectors, housing (drain pipe fittings), 12V gel-cell battery, misc components.
 
@@ -44,20 +33,20 @@ The weight scales were made of two plywood sheets, with the load-cells mounted i
 
 ## Software
 
-The software is available at [Github](https://github.com/claytoninc/WizFi360_BeeLogger)
+The software is available at Github (https://github.com/claytoninc/WizFi360_BeeLogger)
 
-It is based on the WizNet example TCP-Client code from [WizNet](https://github.com/Wiznet/WizFi360-EVB-Pico-C)
+It is based on the WizNet example TCP-Client code from WizNet (https://github.com/Wiznet/WizFi360-EVB-Pico-C)
 
 Initially there were problems in getting the system to compile, but after a few tweaks of the CMake file to correct the case of directory name, the code compiles in a WSL environment using GCC 9.2.1 arm-none-eadi (following the RPi pico starters guide).
 The code was further developed using other libraries, including Arduino libraries. Some were used directly with little change. Some were only used as reference for developing the final code.
 
-The required MQTT implementation only needs to connect and log data – so only a very limited set of the MQTT features. Simple code was developed to do this feature, based on the ‘ThingsBoard’ sample projects (especially the ‘PubSubClient’ Arduino library))
+The required MQTT implementation only needs to connect and submit data – so only a very limited set of the MQTT features. Simple code was developed to do this feature, based on the ‘ThingsBoard’ sample projects (especially the ‘PubSubClient’ Arduino library))
 
-The one-wire library (for the DS18B20 sensors) using the library from [adamboardman](https://github.com/adamboardman/pico-onewire)
+The one-wire library (for the DS18B20 sensors) using the library from adamboardman (https://github.com/adamboardman/pico-onewire)
 
 The HX711 (weight sensor) was written, with reference to a number of HX711 Arduino libraries
 
-The HTU21D (humidity/ambient temperature sensor) used the [Sparkfun Arduino library](https://github.com/sparkfun/SparkFun_HTU21D_Breakout_Arduino_Library), ported to the RPi Pico
+The HTU21D (humidity/ambient temperature sensor) used the Sparkfun Arduino library (https://github.com/sparkfun/SparkFun_HTU21D_Breakout_Arduino_Library), ported to the RPi Pico
 
 The operation of the system is:
 * connects to the wifi (or confirms the connection) 
@@ -72,6 +61,7 @@ A simple software loop performs these operations. A watchdog time ensures that s
 ## Installation
 
 The beehive was removed from its stand, and the scales installed before returning the hive in place.
+
 The Monitor device was mounted to a bracket off the side of the hive, orientated with the connectors down to minimize the risk of water leaks.
 
 The hive was opened, and the three temperature sensors installed in the middle of the hive bee cluster, at the top of the hive, and at the back of the hive.
