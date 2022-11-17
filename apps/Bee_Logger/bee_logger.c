@@ -22,6 +22,7 @@
 #include "timer.h"
 #include "Driver_WiFi.h"
 #include "hardware/watchdog.h"
+#include "hardware/adc.h"
 
 #include "mqtt_client.h"
 #include "temperature_sensors.h"
@@ -43,6 +44,8 @@
 // MQTT Access Details
 #define ACCESS_ID       "beehive001"
 #define ACCESS_USER     "beekeeper1"
+
+#define ADC_PIN         28
 
 // ----------------------------------------------------------------------------------------------------
 //  DATA
@@ -165,6 +168,8 @@ static void app_main (void *argument)
 
 void application( void )
 {
+    double      voltage;
+    double      scaled_voltage;
     bool        temperature1_valid;
     double      temperature1;
     bool        temperature2_valid;
@@ -181,7 +186,12 @@ void application( void )
     int         cycle_count;
     bool        wifi_ready;
     bool        wifi_state;
+    uint16_t    reading;
 
+    printf( "ADC - Initialise\n" );
+    adc_init();
+    adc_gpio_init( ADC_PIN );
+    adc_select_input( ADC_PIN-26 );
     printf( "Temperature Sensor - Initialise\n" );
     TempSensor_init();
     printf( "Weight Sensor - Initialise\n" );
@@ -255,6 +265,19 @@ void application( void )
         }
         watchdog_update();
 
+        // Vin to ADC pin = 200k
+        // ADC to GND = 22k
+        //  Vref = 3.3V
+        // however measurements give:
+        //      Vref = 3.33
+        //      Ratio = 9.728
+        //      Vdiode = 0.804
+        printf( "Read Voltage ...\n" );
+        reading = adc_read();
+        voltage = reading * 3.33 / (1 << 12);
+        scaled_voltage = (voltage * 9.728) + 0.804;        // scale for resistors and diode-drop
+        printf( "  Reading %u   Voltage %.3f  Scaled-Voltage %.2f\n", reading, voltage, scaled_voltage );
+
         printf( "Read Temperature 1 ...\n" );
         temperature1_valid = TempSensor_read( SENSORS_T1, &temperature1 );
         if ( !temperature1_valid )
@@ -320,6 +343,10 @@ void application( void )
             watchdog_update();
             if ( !retb )
                 break;
+            retb = mqtt_send_float( "Voltage1", voltage ) ;
+            if ( !retb )
+                break;
+            watchdog_update();
             if ( temperature1_valid )
             {
                 retb = mqtt_send_float( "Temperature1", temperature1 ) ;

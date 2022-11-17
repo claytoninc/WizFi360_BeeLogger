@@ -21,6 +21,7 @@ target_link_libraries(${TARGET_NAME} PRIVATE
         CMSIS_FREERTOS_FILES
         hardware_i2c
         hardware_spi
+        hardware_adc
         hardware_dma
         FREERTOS_FILES
         TIMER_FILES

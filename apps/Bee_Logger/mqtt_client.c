@@ -333,7 +333,7 @@ bool mqtt_send_float( const char *key, double value )
     }
 
     // Build message
-    sprintf( payload_buf, "{\"%s\":%.3f}", key, value );
+    sprintf( payload_buf, "{\"%s\":%.6f}", key, value );
     length = MQTT_MAX_HEADER_SIZE;
     length = append_string_field( mqtt_telemetry_topic, mqtt_tx_buf,length );
     msg_ptr = payload_buf;
